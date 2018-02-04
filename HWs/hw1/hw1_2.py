@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 
 #======= Load Data ========#
-def read_dataset(input_csv_file, isTrain=True):
+def read_dataset(input_csv_file):
     '''
 
     :param input_csv_file:
@@ -18,17 +18,17 @@ def read_dataset(input_csv_file, isTrain=True):
     print('Loading data...')
     X = []
     y = []
-    offset = 0
-    if not isTrain:
-        offset = 1
-
+    # i = 0
     with open(input_csv_file) as csv_file:
         csvReader = csv.reader(csv_file)
         next(csvReader)
         for row in csvReader:
             row_np = np.array(row)
-            X.append(row_np[1 - offset:])
-            y.append(row_np[0])
+            X.append(row_np[:-1])
+            y.append(row_np[-1])
+            # if i == 10:
+            #     break
+            # i += 1
     X = np.array(X).astype(int)
     y = np.array(y).astype(int)
     return X, y
@@ -95,31 +95,32 @@ def eval(pred, label):
 
 
 
-X, y = read_dataset("train.csv", True)
+train_X, train_y = read_dataset("mnist_train.csv")
+test_X, test_y = read_dataset("mnist_test.csv")
 # a = stretched_bd_box(X)
 # print(a.shape)
 # print(X.shape)
-clf = GaussianNB()
-
-train_feat = X[:30000]
-test_feat = X[30000:]
-train_label = y[:30000]
-test_label = y[30000:]
-
-
-
-# model = train_NB(train_feat, train_label, True, 'Bernoulli')
-model = train_RF(train_feat, train_label, 30, 16)
-pred = predict(model, test_feat)
-print(eval(pred, test_label))
+# clf = GaussianNB()
+#
+# train_feat = X[:30000]
+# test_feat = X[30000:]
+# train_label = y[:30000]
+# test_label = y[30000:]
 
 
-# print(stretched_bd_box(X))
-# idx = 24
+
+model = train_NB(train_X, train_y, True, 'Gaussian')
+# model = train_RF(train_X, train_y, 30, 16)
+pred = predict(model, test_X, True)
+print(eval(pred, test_y))
+
+# idx = 9
 # print(y[idx])
 # img = X[idx]
-# # plt.imshow(img.reshape((28, 28)))
-# plt.imshow(resize_img(bounding_box(img)))
+# rsz_img = resize_img(bounding_box(img))
+# print(rsz_img)
+# plt.imshow(img.reshape((28, 28)))
+# plt.imshow(rsz_img)
 # plt.show()
 # # bd_img = bounding_box(img)
 # # print(bd_img)
