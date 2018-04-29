@@ -18,7 +18,7 @@ class ImageDenoising:
         self.Q_init = None
         self.theta_HH = 0.8
         self.theta_HX = 0.2
-        self.energy = np.zeros((20, 10))
+        self.energy = np.zeros((20, 11))
         self.energy_samples = None
 
         self.load_data()
@@ -68,8 +68,9 @@ class ImageDenoising:
     def update(self, iters=10):
         for i in range(0, self.nimgs * 2 - 1, 2):
             Q = np.array(self.Q_init)
-            for iter in range(iters):
-                img_idx = i // 2
+            img_idx = i // 2
+            self.energy[img_idx, 0] = self.variational_free_energy(Q, img_idx)
+            for iter in range(1, iters + 1):
                 self.update_one_img(Q, img_idx)
                 self.energy[img_idx, iter] = self.variational_free_energy(Q, img_idx)
 
@@ -99,7 +100,7 @@ class ImageDenoising:
                 hidden += self.theta_HH * E_q[row, col] * np.sum(E_q[neighbor_idx[:, 0], neighbor_idx[:, 1]])
         observed = np.sum(self.theta_HX * E_q * self.noise_images[img_idx])
         term2 = hidden + observed
-        return term1 + term2
+        return term1
 
 
     def neighbors(self, row, col):
@@ -132,12 +133,12 @@ def main():
     data_dir = "SupplementaryAndSampleData"
 
     BM = ImageDenoising(data_dir)
-    BM.update(iters=10)
-    print(BM.energy)
+    # BM.update(iters=10)
+    # print(BM.energy)
     # res = BM.test_add_noise()
     # print(res[1:])
 
-    # print(BM.variational_free_energy(BM.Q_init, 0))
+    print(BM.variational_free_energy(BM.Q_init, 0))
 
 
     # imgs = BM.train_images
