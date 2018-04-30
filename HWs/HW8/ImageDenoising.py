@@ -105,7 +105,6 @@ class ImageDenoising:
         # Hidden Neighbors
         E_q = 2 * Q - 1 # E_q Energy
         hidden = 0
-        # hidden2 = 0
         for row in range(self.img_shape[0]):
             for col in range(self.img_shape[1]):
                 neighbor_idx = self.neighbors(row, col)
@@ -147,26 +146,13 @@ class ImageDenoising:
         plt.show()
 
 
-
-
-
-
 def main():
     img_type = ["origin", "noise", "reconstruct"]
     data_dir = "SupplementaryAndSampleData"
     BM = ImageDenoising(data_dir)
-    # BM.update(iters=10)
-    # print(BM.energy)
-    # res = BM.test_add_noise()
-    # print(res[1:])
-    # BM.display_imgs(0, 9, img_type=img_type[2])
-
-
-
-
-    print(BM.variational_free_energy(BM.Q_init,3))
-
-
+    BM.update(iters=10)
+    BM.display_imgs(0, 9, img_type=img_type[2])
+    # print((BM.energy[0:10]))
 
 
 if __name__ == "__main__":
