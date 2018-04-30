@@ -17,7 +17,7 @@ class ImageDenoising:
         self.img_shape = self.train_images[0].shape
         self.Q_init = None
         self.theta_HH = 0.8
-        self.theta_HX = 0.2
+        self.theta_HX = 2
         self.energy = np.zeros((20, 11))
         self.energy_samples = None
         self.sample_denoised = None
@@ -100,22 +100,17 @@ class ImageDenoising:
 
     def variational_free_energy(self, Q, img_idx):
         eps = 10**-10
+        img = self.noise_images[img_idx]
         term1 = np.sum(Q * np.log(Q + eps)) + np.sum((1 - Q) * np.log((1 - Q) + eps))
         # Hidden Neighbors
         E_q = 2 * Q - 1 # E_q Energy
         hidden = 0
+        # hidden2 = 0
         for row in range(self.img_shape[0]):
             for col in range(self.img_shape[1]):
                 neighbor_idx = self.neighbors(row, col)
-                # for idx in neighbor_idx:
-                #     hidden += self.theta_HH *  E_q[idx[0], idx[1]] * E_q[row, col]
-                delta = self.theta_HH * E_q[row, col] * np.sum(E_q[neighbor_idx[:, 0], neighbor_idx[:, 1]])
-                hidden += delta
-                # print('hidden: {}'.format(hidden))
-        observed = np.sum(self.theta_HX * E_q * self.noise_images[img_idx])
-        # print('total hiddeen: {}'.format(hidden))
-        # print('total observed: {}'.format(observed))
-
+                hidden += self.theta_HH * E_q[row, col] * np.sum(E_q[neighbor_idx[:, 0], neighbor_idx[:, 1]])
+        observed = self.theta_HX * np.sum(E_q * img)
         term2 = hidden + observed
         return term1 - term2
 
@@ -160,16 +155,16 @@ def main():
     img_type = ["origin", "noise", "reconstruct"]
     data_dir = "SupplementaryAndSampleData"
     BM = ImageDenoising(data_dir)
-    BM.update(iters=10)
+    # BM.update(iters=10)
     # print(BM.energy)
     # res = BM.test_add_noise()
     # print(res[1:])
-    BM.display_imgs(0, 9, img_type=img_type[2])
+    # BM.display_imgs(0, 9, img_type=img_type[2])
 
 
 
 
-    # print(BM.variational_free_energy(BM.Q_init, 0))
+    print(BM.variational_free_energy(BM.Q_init,3))
 
 
 
