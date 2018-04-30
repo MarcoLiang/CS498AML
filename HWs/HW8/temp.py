@@ -31,13 +31,13 @@ def neighbors(row, col):
         for d_col in range(-1, 2, 1):
             n_row = row + d_row
             n_col = col + d_col
-            if (d_row | d_col) != 0 and n_row >= 0 and n_row < 6 and n_col >= 0 and n_col < 6:
+            if abs(d_col + d_row) == 1 and n_row >= 0 and n_row < 6 and n_col >= 0 and n_col < 6:
                 neighbors.append([n_row, n_col])
     return np.array(neighbors)
 
 # print(neighbors(1,1))
 print(a)
-nei = neighbors(0, 1)
+nei = neighbors(1, 1)
 # print(nei)
 
 print(a[nei[:, 0], nei[:, 1]])

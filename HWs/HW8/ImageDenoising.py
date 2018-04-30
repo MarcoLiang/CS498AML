@@ -20,6 +20,8 @@ class ImageDenoising:
         self.theta_HX = 0.2
         self.energy = np.zeros((20, 11))
         self.energy_samples = None
+        self.sample_denoised = None
+        self.reconstruct_img = []
 
         self.load_data()
         self.preprocessing()
@@ -57,13 +59,12 @@ class ImageDenoising:
         order_coo = pd.read_csv(self.data_dir + '/UpdateOrderCoordinates.csv', sep=',', usecols=range(1, nclos + 1)).as_matrix()
         order_coo.astype(np.uint8)
         self.update_order_coo = order_coo
-        # print(order_coo[0, -2:])
-
         # Load Inital Parameters Model (initial Q)
         self.Q_init = pd.read_csv(self.data_dir + '/InitialParametersModel.csv', sep=',', dtype=float, header=None).as_matrix()
-        # print(Q[0][0])
-
+        # Load energy sample of first 10 imgs
         self.energy_samples = pd.read_csv(self.data_dir + '/EnergySamples.csv', sep=',', dtype=float, header=None).as_matrix()
+        # Load denoised fisrt 10 img
+        self.sample_denoised = pd.read_csv(self.data_dir + '/SampleDenoised.csv', sep=',', dtype=float, header=None).as_matrix()
 
     def update(self, iters=10):
         for i in range(0, self.nimgs * 2 - 1, 2):
@@ -73,6 +74,8 @@ class ImageDenoising:
             for iter in range(1, iters + 1):
                 self.update_one_img(Q, img_idx)
                 self.energy[img_idx, iter] = self.variational_free_energy(Q, img_idx)
+            denoised_img = np.where(Q > 0.5, 1, 0)
+            self.reconstruct_img.append(denoised_img)
 
     def update_one_img(self, Q, img_idx):
         coo_row = img_idx * 2
@@ -97,10 +100,17 @@ class ImageDenoising:
         for row in range(self.img_shape[0]):
             for col in range(self.img_shape[1]):
                 neighbor_idx = self.neighbors(row, col)
-                hidden += self.theta_HH * E_q[row, col] * np.sum(E_q[neighbor_idx[:, 0], neighbor_idx[:, 1]])
+                # for idx in neighbor_idx:
+                #     hidden += self.theta_HH *  E_q[idx[0], idx[1]] * E_q[row, col]
+                delta = self.theta_HH * E_q[row, col] * np.sum(E_q[neighbor_idx[:, 0], neighbor_idx[:, 1]])
+                hidden += delta
+                # print('hidden: {}'.format(hidden))
         observed = np.sum(self.theta_HX * E_q * self.noise_images[img_idx])
+        # print('total hiddeen: {}'.format(hidden))
+        # print('total observed: {}'.format(observed))
+
         term2 = hidden + observed
-        return term1
+        return term1 - term2
 
 
     def neighbors(self, row, col):
@@ -116,14 +126,24 @@ class ImageDenoising:
             for d_col in range(-1, 2, 1):
                 n_row = row + d_row
                 n_col = col + d_col
-                if (d_row | d_col) != 0 and n_row >= 0 and n_row < self.img_shape[0] and n_col >= 0 and n_col < self.img_shape[1]:
+                if abs(d_col + d_row) == 1 and n_row >= 0 and n_row < self.img_shape[0] and n_col >= 0 and n_col < self.img_shape[1]:
                     neighbors.append([n_row, n_col])
         return np.array(neighbors)
 
+    def display_imgs(self, from_idx, to_idx, img_type="origin"):
+        n_img = to_idx - from_idx + 1
+        height, width = self.img_shape
+        out_img = np.zeros((height, n_img * width))
+        display_img = self.train_images
+        if img_type == "noise":
+            display_img = self.noise_images
+        elif img_type == "reconstruct":
+            display_img = self.reconstruct_img
 
 
-
-
+        for i in range(n_img):
+            out_img[:, i * width : (i + 1) * width] = display_img[i]
+        return out_img
 
 
 
@@ -133,17 +153,24 @@ def main():
     data_dir = "SupplementaryAndSampleData"
 
     BM = ImageDenoising(data_dir)
-    # BM.update(iters=10)
+    BM.update(iters=10)
     # print(BM.energy)
     # res = BM.test_add_noise()
     # print(res[1:])
+    noise_img = BM.display_imgs(0, 9, img_type="reconstruct")
+    sample_denoise_img = BM.sample_denoised
+    print(sample_denoise_img.shape)
 
-    print(BM.variational_free_energy(BM.Q_init, 0))
+
+
+
+    # print(BM.variational_free_energy(BM.Q_init, 0))
 
 
     # imgs = BM.train_images
-    # plt.imshow(res[0], cmap='gray')
-    # plt.show()
+    plt.imshow(noise_img, cmap='gray')
+    # plt.imshow(sample_denoise_img, cmap='gray')
+    plt.show()
     # print(imgs[0])
     # scipy.misc.toimage(scipy.misc.imresize(imgs[0, :, :] * -1 + 256, 10.))
 
