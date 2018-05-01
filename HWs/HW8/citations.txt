@@ -1,0 +1,7 @@
+We implemented it from scratch and do not have any cititations.
+
+We utilized some python libraries which was listed on follows:
+mnist
+numpy
+matplotlib
+pandas
