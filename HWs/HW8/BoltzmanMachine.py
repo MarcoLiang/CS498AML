@@ -1,12 +1,10 @@
 import mnist
-import scipy.misc
 import numpy as np
 import matplotlib.pyplot as plt
-import csv
 import pandas as pd
 
 
-class ImageDenoising:
+class BoltzmanMachine:
 
     def __init__(self, dir):
         self.nimgs = 20
@@ -72,15 +70,14 @@ class ImageDenoising:
     def update(self, iters=10):
         for i in range(0, self.nimgs * 2 - 1, 2):
             Q = np.array(self.Q_init)
-            # print(Q)
             img_idx = i // 2
             self.energy[img_idx, 0] = self.variational_free_energy(Q, img_idx)
             for iter in range(1, iters + 1):
                 self.update_one_img(Q, img_idx)
                 self.energy[img_idx, iter] = self.variational_free_energy(Q, img_idx)
-            # print(Q)
             denoised_img = np.where(Q > 0.5, 1, 0)
             self.reconstruct_img.append(denoised_img)
+        self.reconstruct_img = np.array(self.reconstruct_img)
 
     def update_one_img(self, Q, img_idx):
         coo_row = img_idx * 2
@@ -92,9 +89,7 @@ class ImageDenoising:
             pow += self.theta_HH * np.sum((2 * Q[neighbor_idx[:, 0], neighbor_idx[:, 1]]) - 1)
             # Observed Neighbors
             pow += self.theta_HX * self.noise_images[img_idx][row, col]
-            # print("pow: {}".format(pow))
             temp = np.exp(pow)
-            # print("temp: {}".format(temp))
             pi = temp / (temp + (1 / temp))
             Q[row][col] = pi
 
@@ -132,27 +127,39 @@ class ImageDenoising:
         return np.array(neighbors)
 
     def display_imgs(self, from_idx, to_idx, img_type="origin"):
-        n_img = to_idx - from_idx + 1
-        height, width = self.img_shape
-        out_img = np.zeros((height, n_img * width))
         display_img = self.train_images
         if img_type == "noise":
             display_img = self.noise_images
         elif img_type == "reconstruct":
             display_img = self.reconstruct_img
-        for i in range(n_img):
-            out_img[:, i * width : (i + 1) * width] = display_img[i]
-        plt.imshow(out_img, cmap='gray')
+        display_img = self.reformat_img(display_img, from_idx, to_idx)
+        plt.imshow(display_img, cmap='gray')
         plt.show()
+
+    def reformat_img(self, imgs, from_idx, to_idx):
+        n_img = to_idx - from_idx + 1
+        height, width = self.img_shape
+        out_img = np.zeros((height, n_img * width))
+        for i, img_idx in enumerate(range(from_idx, to_idx + 1, 1)):
+            out_img[:, i * width : (i + 1) * width] = imgs[img_idx, :, :]
+        return out_img
+
+    def write_output(self):
+        print("Writing output file (energy.csv & denoised.csv)...")
+        df = pd.DataFrame(self.energy[10:12, :])
+        df.to_csv("energy.csv", header=None, index=False)
+        denoised = self.reformat_img(self.reconstruct_img, 10, 19)
+        df = pd.DataFrame(denoised)
+        df.to_csv("denoised.csv", header=None, index=False)
 
 
 def main():
     img_type = ["origin", "noise", "reconstruct"]
     data_dir = "SupplementaryAndSampleData"
-    BM = ImageDenoising(data_dir)
+    BM = BoltzmanMachine(data_dir)
     BM.update(iters=10)
-    BM.display_imgs(0, 9, img_type=img_type[2])
-    # print((BM.energy[0:10]))
+    # BM.write_output()
+    BM.display_imgs(10, 19, img_type=img_type[2])
 
 
 if __name__ == "__main__":
